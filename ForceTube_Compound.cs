@@ -86,25 +86,30 @@ namespace ForceTube_Compound
             dualWieldSort();
         }
 
-
-        private static void setAmmo(bool hasAmmo, bool isRight)
+        [HarmonyPatch]
+        public class protube_Reload
         {
-            if (isRight) { rightGunHasAmmo = hasAmmo; }
-            else { leftGunHasAmmo = hasAmmo; }
-        }
-
-
-        private static bool checkIfRightHand(string controllerName)
-        {
-            if (controllerName.Contains("Right") | controllerName.Contains("right"))
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(AssaultRifleController), "Load")]
+            [HarmonyPatch(typeof(BouncerController), "Load")]
+            [HarmonyPatch(typeof(GrenadeLaucher), "Load")]
+            [HarmonyPatch(typeof(LaserRifle), "Load")]
+            [HarmonyPatch(typeof(RailgunController), "Load")]
+            [HarmonyPatch(typeof(RocketLauncher), "Load")]
+            [HarmonyPatch(typeof(SonicPulseGenerator), "Load")]
+            public static void Postfix(GunController __instance)
             {
-                return true;
+                ForceTubeVRChannel myChannel = (Traverse.Create(__instance).Property("IsLeftHandedGun").GetValue<Boolean>())
+                    ?
+                    ForceTubeVRChannel.pistol2
+                    :
+                    ForceTubeVRChannel.pistol1;
+                ForceTubeVRInterface.Rumble(126, 50f, myChannel);
             }
-            else { return false; }
         }
 
         [HarmonyPatch(typeof(GunController), "Fire", new Type[] { })]
-        public class bhaptics_Fire
+        public class protube_Fire
         {
             [HarmonyPostfix]
             public static void Postfix(GunController __instance)
@@ -115,7 +120,9 @@ namespace ForceTube_Compound
                     :
                     ForceTubeVRChannel.pistol1;
                 byte kickPower = 210;
-                switch (__instance.name)
+
+                Log.LogMessage("WEAPON NAME " + __instance.WeaponID);
+                switch (__instance.WeaponID)
                 {
                     /*
                     case 0:
@@ -139,16 +146,20 @@ namespace ForceTube_Compound
                         ForceTubeVRInterface.Rumble(255, 200f, myChannel);
                         return;
                     */
+                    case SaveFile.WeaponUnlockFlags.Revolver:
+                        kickPower = 230;
+                        break;
                     default:
                         kickPower = 210;
                         break;
                 }
                 ForceTubeVRInterface.Kick(kickPower, myChannel);
+
             }
         }
         /*
         [HarmonyPatch(typeof(SyringeController), "Inject")]
-        public class bhaptics_SyringeController
+        public class protube_SyringeController
         {
             [HarmonyPostfix]
             public static void Postfix()

@@ -97,6 +97,11 @@ namespace ForceTube_Compound
             [HarmonyPatch(typeof(RailgunController), "Load")]
             [HarmonyPatch(typeof(RocketLauncher), "Load")]
             [HarmonyPatch(typeof(SonicPulseGenerator), "Load")]
+            [HarmonyPatch(typeof(Revolver), "Load")]
+            [HarmonyPatch(typeof(DartGun), "Load")]
+            [HarmonyPatch(typeof(NewDoubleShotgun), "Load")]
+            [HarmonyPatch(typeof(ShotgunController), "Load")]
+            [HarmonyPatch(typeof(StickyLauncher), "Load")]
             public static void Postfix(GunController __instance)
             {
                 ForceTubeVRChannel myChannel = (Traverse.Create(__instance).Property("IsLeftHandedGun").GetValue<Boolean>())
@@ -104,7 +109,55 @@ namespace ForceTube_Compound
                     ForceTubeVRChannel.pistol2
                     :
                     ForceTubeVRChannel.pistol1;
-                ForceTubeVRInterface.Rumble(126, 50f, myChannel);
+                ForceTubeVRInterface.Rumble(126, 20f, myChannel);
+            }
+        }
+        
+        [HarmonyPatch]
+        public class protube_ReloadMachinePistol
+        {
+            public static bool reloaded = false;
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(MachinePistol), "PlayPressButtonAnim")]
+            public static void Postfix(MachinePistol __instance, bool __result)
+            {
+                if (__result && !reloaded)
+                {
+                    ForceTubeVRChannel myChannel = (Traverse.Create(__instance).Property("IsLeftHandedGun").GetValue<Boolean>())
+                        ?
+                        ForceTubeVRChannel.pistol2
+                        :
+                        ForceTubeVRChannel.pistol1;
+                    ForceTubeVRInterface.Rumble(126, 20f, myChannel);
+                    reloaded = true;
+                }
+                if( !__result && reloaded)
+                {
+                    reloaded = false;
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(LaserRifle), "Update")]
+        public class protube_laserRifle
+        {
+            [HarmonyPostfix]
+            public static void Postfix(LaserRifle __instance)
+            {
+                ForceTubeVRChannel myChannel = (Traverse.Create(__instance).Property("IsLeftHandedGun").GetValue<Boolean>())
+                    ?
+                    ForceTubeVRChannel.pistol2
+                    :
+                    ForceTubeVRChannel.pistol1;
+
+                if(Traverse.Create(__instance).Field("IsFiringThisFrame").GetValue<Boolean>())
+                {
+                    ForceTubeVRInterface.Rumble(255, 100f, myChannel);
+                }
+                else if (Traverse.Create(__instance).Field("Charge").GetValue<float>() > 0)
+                {
+                    ForceTubeVRInterface.Rumble(100, 100f, myChannel);
+                }
             }
         }
 
@@ -119,34 +172,41 @@ namespace ForceTube_Compound
                     ForceTubeVRChannel.pistol2
                     :
                     ForceTubeVRChannel.pistol1;
-                byte kickPower = 210;
 
-                Log.LogMessage("WEAPON NAME " + __instance.WeaponID);
+                byte kickPower = 210;
                 switch (__instance.WeaponID)
                 {
-                    /*
-                    case 0:
-                        // Pistol
-                        kickPower = 210;
-                        break;
-                    case 1:
-                        // Revolver
+                    case SaveFile.WeaponUnlockFlags.Bouncer:
                         kickPower = 230;
                         break;
-                    case 2:
-                        // Burstfire
-                        kickPower = 180;
-                        break;
-                    case 3:
-                        // Boomstick (Shotgun)
+                    case SaveFile.WeaponUnlockFlags.RocketLauncher:
+                        ForceTubeVRInterface.Shoot(255, 230, 200f, myChannel);
+                        return;
+                    case SaveFile.WeaponUnlockFlags.DoubleShotgun:
                         ForceTubeVRInterface.Shoot(255, 200, 100f, myChannel);
                         return;
-                    case 4:
-                        // Knuckles
-                        ForceTubeVRInterface.Rumble(255, 200f, myChannel);
-                        return;
-                    */
                     case SaveFile.WeaponUnlockFlags.Revolver:
+                        kickPower = 245;
+                        break;
+                    case SaveFile.WeaponUnlockFlags.DartGun:
+                        kickPower = 200;
+                        break;
+                    case SaveFile.WeaponUnlockFlags.SonicPulseGenerator:
+                        kickPower = 200;
+                        break;
+                    case SaveFile.WeaponUnlockFlags.StickyLauncher:
+                        kickPower = 200;
+                        break;
+                    case SaveFile.WeaponUnlockFlags.LaserPistol:
+                        kickPower = 200;
+                        break;
+                    case SaveFile.WeaponUnlockFlags.Railgun:
+                        ForceTubeVRInterface.Shoot(220, 200, 100f, myChannel);
+                        return;
+                    case SaveFile.WeaponUnlockFlags.GrenadePistol:
+                        kickPower = 220;
+                        break;
+                    case SaveFile.WeaponUnlockFlags.Minigun:
                         kickPower = 230;
                         break;
                     default:
@@ -157,23 +217,6 @@ namespace ForceTube_Compound
 
             }
         }
-        /*
-        [HarmonyPatch(typeof(SyringeController), "Inject")]
-        public class protube_SyringeController
-        {
-            [HarmonyPostfix]
-            public static void Postfix()
-            {
-                if (Plugin.tactsuitVr.suitDisabled)
-                {
-                    return;
-                }
-                Plugin.tactsuitVr.PlaybackHaptics("SuperPower");
-                Plugin.tactsuitVr.PlaybackHaptics("superpower_L");
-                Plugin.tactsuitVr.PlaybackHaptics("superpower_R");
-            }
-        }
-        */
     }
 }
 
